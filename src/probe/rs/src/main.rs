@@ -13,13 +13,6 @@ use std::{
     io::{Read, Write},
 };
 
-#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
-struct App {
-    name: String,
-    pid: usize,
-    hidden: bool,
-}
-
 fn main() {
     // Read state file
     let mut file = OpenOptions::new()
@@ -38,8 +31,6 @@ fn main() {
         serde_json::from_str(&file_content).unwrap()
     };
 
-    let mut apps = vec![];
-
     unsafe {
         let autorelease_pool_cls = Class::get("NSAutoreleasePool").unwrap();
         let autorelease_pool: *mut Object = msg_send![autorelease_pool_cls, new];
@@ -55,35 +46,21 @@ fn main() {
         for i in 0..n_apps {
             let app: *mut Object = msg_send![running_apps, objectAtIndex:i];
 
-            // Convert name to String
-            // https://github.com/SSheldon/rust-objc-foundation/blob/0.1.1/src/string.rs#L40-L50
-            let name: *mut NSString = msg_send![app, localizedName];
-            let bytes: *const std::os::raw::c_char = msg_send![name, UTF8String];
-            let bytes = bytes as *const u8;
-            let bytes = std::slice::from_raw_parts(bytes, NSString::len(&*name));
-            let name = std::str::from_utf8(bytes).unwrap().to_owned();
-
-            // Construct App and push to vector
             let pid: usize = msg_send![app, processIdentifier];
-            // https://developer.apple.com/documentation/appkit/nsrunningapplication/1525949-ishidden
-            let hidden: bool = msg_send![app, isHidden];
-            apps.push(App {
-                name: name.clone(),
-                pid,
-                hidden,
-            });
+            let is_hidden: bool = msg_send![app, isHidden];
 
-            if !hidden {
-                println!("Hiding active application {name}");
-                let _: () = msg_send![app, hide]; // TODO: check if successful
-                                                  // todo!();
-                                                  // target_app_ids
+            // If the application is active (the first branch of the if statement), then we want to hide it
+            // and add its ID to the list.  This is the first stage of the toggle.  The second stage of the
+            // toggle is a little more complicated (this is the second branch of the if statement).  We need
+            // to check if the hidden application is in the list.  If it is, then we have hidden it with the
+            // present application, and we need to unhide it accordingly.  If it's not in the list, then it
+            // was already hidden, so we can safely ignore it.
+            if !is_hidden {
+                let _: () = msg_send![app, hide];
                 target_app_ids.insert(pid);
             } else {
-                println!("Application {name} already hidden");
                 if target_app_ids.contains(&pid) {
-                    println!("Target {name} in list");
-                    let _: () = msg_send![app, unhide]; // TODO: check if successful
+                    let _: () = msg_send![app, unhide];
                     target_app_ids.remove(&pid);
                 }
             }
