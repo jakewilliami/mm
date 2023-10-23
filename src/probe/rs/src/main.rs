@@ -1,16 +1,19 @@
 // NOTE: need cocoa for some reason for objc to work
 use cocoa;
-
 use objc::{
     msg_send,
     runtime::{Class, Object},
     sel, sel_impl,
 };
-
 use objc_foundation::{INSString, NSString};
-// use objc_id::Id;
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashSet,
+    fs::OpenOptions,
+    io::{Read, Write},
+};
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Hash, Serialize, Deserialize, Debug)]
 struct App {
     name: String,
     pid: usize,
@@ -18,6 +21,23 @@ struct App {
 }
 
 fn main() {
+    // Read state file
+    let mut file = OpenOptions::new()
+        .write(true)
+        .read(true)
+        .create(true)
+        .open("data.json")
+        .unwrap();
+
+    let mut file_content = String::new();
+    file.read_to_string(&mut file_content).unwrap();
+
+    let mut target_app_ids: HashSet<usize> = if file_content.is_empty() {
+        HashSet::new()
+    } else {
+        serde_json::from_str(&file_content).unwrap()
+    };
+
     let mut apps = vec![];
 
     unsafe {
@@ -27,6 +47,7 @@ fn main() {
         let workspace: *mut Object = msg_send![workspace_cls, sharedWorkspace];
 
         // Collect information about running apps
+        // https://developer.apple.com/documentation/appkit/nsrunningapplication
         // https://github.com/mrmekon/fruitbasket/blob/master/src/osx.rs
         let running_apps: *mut Object = msg_send![workspace, runningApplications];
         let n_apps = msg_send![running_apps, count];
@@ -44,12 +65,39 @@ fn main() {
 
             // Construct App and push to vector
             let pid: usize = msg_send![app, processIdentifier];
+            // https://developer.apple.com/documentation/appkit/nsrunningapplication/1525949-ishidden
             let hidden: bool = msg_send![app, isHidden];
-            apps.push(App { name, pid, hidden });
+            apps.push(App {
+                name: name.clone(),
+                pid,
+                hidden,
+            });
+
+            if !hidden {
+                println!("Hiding active application {name}");
+                let _: () = msg_send![app, hide]; // TODO: check if successful
+                                                  // todo!();
+                                                  // target_app_ids
+                target_app_ids.insert(pid);
+            } else {
+                println!("Application {name} already hidden");
+                if target_app_ids.contains(&pid) {
+                    println!("Target {name} in list");
+                    let _: () = msg_send![app, unhide]; // TODO: check if successful
+                    target_app_ids.remove(&pid);
+                }
+            }
         }
+
+        // Update state file
+        let new_state = serde_json::to_string(&target_app_ids).unwrap();
+        let mut file = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open("data.json")
+            .unwrap();
+        file.write_all(new_state.as_bytes()).unwrap();
 
         let _: *mut Object = msg_send![autorelease_pool, release];
     }
-
-    println!("{:#?}", apps);
 }

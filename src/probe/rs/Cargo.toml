@@ -9,3 +9,5 @@ edition = "2021"
 cocoa = "0.25.0"
 objc = "0.2.7"
 objc-foundation = "0.1.1"
+serde = { version = "1.0.189", features = ["derive"] }
+serde_json = "1.0.107"
