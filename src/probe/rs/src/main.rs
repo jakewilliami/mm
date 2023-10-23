@@ -1,19 +1,25 @@
 // NOTE: need cocoa for some reason for objc to work
+use clap::{crate_authors, crate_version, Parser};
 use cocoa;
 use objc::{
     msg_send,
     runtime::{Class, Object},
     sel, sel_impl,
 };
-use objc_foundation::{INSString, NSString};
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     fs::OpenOptions,
     io::{Read, Write},
 };
 
+#[derive(Parser)]
+#[command(name = "mm", author = crate_authors!(", "), version = crate_version!())]
+/// Mischeif Managed: toggle desktop view in macOS
+struct Cli {}
+
 fn main() {
+    let _cli = Cli::parse();
+
     // Read state file
     let mut file = OpenOptions::new()
         .write(true)
