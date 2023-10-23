@@ -6,7 +6,29 @@ Mischeif Managed (`mm` for short) is a desktop application for macOS to toggle o
 
 ## Quick Start
 
-TODO
+### Building the Application
+
+#### Rust
+
+```bash
+$ cd src/probe/rs
+$ ./build.sh
+$ ./mm
+```
+
+#### Objective-C
+
+```bash
+$ cd src/probe/
+$ ./build.sh
+$ ./main
+```
+
+### Keyboard Shortcut
+
+You can set up a new service through Automator with a keyboard shortcut as described [here](https://apple.stackexchange.com/a/40887/366960).
+
+When prompted for a document type in Automator, choose Quick Action.  Ensure the service does not wait for any input.  I have bound this to <kbd>⌘ + \</kbd>.
 
 ## Note on Development
 

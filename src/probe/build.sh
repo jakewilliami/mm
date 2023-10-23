@@ -3,6 +3,4 @@
 set -xe
 trap 'exit 1' INT
 
-set -xe
-
-gcc -o main main.m -framework Cocoa
+gcc -o mm main.m -framework Cocoa
