@@ -102,7 +102,7 @@ fn main() {
                 app_state
                     .pids
                     .entry(HiddenState::AlreadyHidden)
-                    .or_insert(HashSet::new())
+                    .or_default()
                     .insert(app.pid);
             }
         }
@@ -147,16 +147,17 @@ fn main() {
         }
     }
 
-    // TODO: empty the AlreadyHidden HashSet if we are at the end of Show mode
-
-    // Update state file
+    // Update state file, or empty it if we are finished one toggle cycle
     let new_state = serde_json::to_string(&app_state).unwrap();
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .open("data.json")
         .unwrap();
-    file.write_all(new_state.as_bytes()).unwrap();
+
+    if app_state.mode == ToggleMode::Hide {
+        file.write_all(new_state.as_bytes()).unwrap();
+    }
 }
 
 fn get_running_apps() -> Vec<RunningApp> {
