@@ -1,3 +1,8 @@
+/target
+Cargo.lock
+mm
+m
+
 # Created by https://www.toptal.com/developers/gitignore/api/rust,objective-c
 # Edit at https://www.toptal.com/developers/gitignore?templates=rust,objective-c
 
